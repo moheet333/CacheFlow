@@ -6,11 +6,15 @@ package cmd
 import (
 	"os"
 
-	"github.com/moheet333/CacheFlow/internal"
 	"github.com/spf13/cobra"
 )
 
-var Newflag internal.CompulsoryFlag
+type CompulsoryFlag  struct {
+	Port string
+	Origin string
+}
+
+var Newflag CompulsoryFlag
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -47,8 +51,8 @@ func init() {
 	// when this action is called directly.
 	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	rootCmd.Flags().StringVar(&Newflag.Port, "port", "p", "Set the port for the application to run (port required).")
-	rootCmd.Flags().StringVar(&Newflag.Origin, "origin", "o", "Set the origin for the application to run (origin required).")
+	rootCmd.Flags().StringVar(&Newflag.Port, "port", "3000", "Set the port for the application to run (port required)")
+	rootCmd.Flags().StringVar(&Newflag.Origin, "origin", "https://dummyjson.com", "Set the origin for the application to run (origin required)")
 
 	rootCmd.MarkFlagRequired("port")
 	rootCmd.MarkFlagRequired("origin")
