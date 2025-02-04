@@ -26,14 +26,12 @@ func New() Service {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+	
 	address  := os.Getenv("CACHEFLOW_REDIS_ADDRESS")
 	port     := os.Getenv("CACHEFLOW_REDIS_PORT")
 	password := os.Getenv("CACHEFLOW_REDIS_PASSWORD")
-	// database := os.Getenv("CACHEFLOW_REDIS_DATABASE")
-	database, check := os.LookupEnv("CACHEFLOW_REDIS_DATABASE")
-	if !check {
-		log.Fatal("database env not present")
-	}
+	database := os.Getenv("CACHEFLOW_REDIS_DATABASE")
+
 	num, err := strconv.Atoi(database)
 	if err != nil {
 		log.Fatalf("database incorrect %v", err)

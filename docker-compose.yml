@@ -1,0 +1,11 @@
+services:
+  redis_bp:
+    image: redis:7.2.4
+    restart: unless-stopped
+    ports:
+      - "${CACHEFLOW_REDIS_PORT}:6379"
+    volumes:
+      - "cacheflow:/data"
+
+volumes:
+  cacheflow: 
