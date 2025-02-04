@@ -4,20 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
-	"time"
-	"math"
-	_ "github.com/joho/godotenv/autoload"
 	"strings"
+	"time"
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
-)
-
-var (
-	address  = os.Getenv("REDIS_ADDRESS")
-	port     = os.Getenv("REDIS_PORT")
-	password = os.Getenv("REDIS_PASSWORD")
-	database = os.Getenv("REDIS_DATABASE")
 )
 
 type Service interface {
@@ -29,6 +22,18 @@ type service struct {
 }
 
 func New() Service {
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	address  := os.Getenv("CACHEFLOW_REDIS_ADDRESS")
+	port     := os.Getenv("CACHEFLOW_REDIS_PORT")
+	password := os.Getenv("CACHEFLOW_REDIS_PASSWORD")
+	// database := os.Getenv("CACHEFLOW_REDIS_DATABASE")
+	database, check := os.LookupEnv("CACHEFLOW_REDIS_DATABASE")
+	if !check {
+		log.Fatal("database env not present")
+	}
 	num, err := strconv.Atoi(database)
 	if err != nil {
 		log.Fatalf("database incorrect %v", err)
