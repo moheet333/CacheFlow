@@ -10,7 +10,5 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
-	r.Get("/", HelloWorldHandler)
-
 	return r
 }

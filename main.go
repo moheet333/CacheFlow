@@ -6,6 +6,7 @@ package main
 import (
 	"CacheFlow/cmd"
 	"CacheFlow/internal/server"
+	"github.com/joho/godotenv"
 	"context"
 	"fmt"
 	"log"
@@ -34,6 +35,10 @@ func gracefulShutdown(server *http.Server, done chan bool) {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	cmd.Execute()
 	server := server.NewServer()
 
@@ -41,7 +46,7 @@ func main() {
 
 	go gracefulShutdown(server, done)
 
-	err := server.ListenAndServe()
+	err = server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		panic(fmt.Sprintf("http server error: %s", err))
 	}

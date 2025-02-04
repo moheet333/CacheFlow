@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -21,12 +20,7 @@ type service struct {
 	db *redis.Client
 }
 
-func New() Service {
-	err := godotenv.Load("../../.env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-	
+func New() Service {	
 	address  := os.Getenv("CACHEFLOW_REDIS_ADDRESS")
 	port     := os.Getenv("CACHEFLOW_REDIS_PORT")
 	password := os.Getenv("CACHEFLOW_REDIS_PASSWORD")
