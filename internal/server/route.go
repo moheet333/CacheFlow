@@ -9,6 +9,7 @@ import (
 func (s *Server) RegisterRoutes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-
+	r.Use(middleware.StripSlashes)
+	r.HandleFunc("/*", UniversalHandler)
 	return r
 }
