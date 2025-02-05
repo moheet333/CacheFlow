@@ -3,26 +3,28 @@ package database
 import (
 	"context"
 	"fmt"
+	"github.com/redis/go-redis/v9"
 	"log"
 	"math"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/redis/go-redis/v9"
 )
 
 type Service interface {
 	Health() map[string]string
+	GetCache(ctx context.Context, key string) (string, error)
+	SetCache(ctx context.Context, key string, value string, expiration time.Duration) error
 }
 
 type service struct {
 	db *redis.Client
 }
 
-func New() Service {	
-	address  := os.Getenv("CACHEFLOW_REDIS_ADDRESS")
-	port     := os.Getenv("CACHEFLOW_REDIS_PORT")
+func New() Service {
+	address := os.Getenv("CACHEFLOW_REDIS_ADDRESS")
+	port := os.Getenv("CACHEFLOW_REDIS_PORT")
 	password := os.Getenv("CACHEFLOW_REDIS_PASSWORD")
 	database := os.Getenv("CACHEFLOW_REDIS_DATABASE")
 
@@ -44,6 +46,25 @@ func New() Service {
 	}
 
 	return s
+}
+
+func (s *service) GetCache(ctx context.Context, key string) (string, error) {
+	val, err := s.db.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return "", err
+	} else if err != nil {
+		log.Printf("Redis GET error: %v", err)
+		return "", err
+	}
+	return val, err
+}
+
+func (s *service) SetCache(ctx context.Context, key string, value string, expiration time.Duration) error {
+	err := s.db.Set(ctx, key, value, expiration).Err()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *service) Health() map[string]string {
@@ -166,4 +187,3 @@ func parseRedisInfo(info string) map[string]string {
 	}
 	return result
 }
-

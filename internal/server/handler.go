@@ -2,14 +2,23 @@ package server
 
 import (
 	root "CacheFlow/cmd"
+	"context"
+	"encoding/json"
 	"io"
 	"net/http"
+	"time"
 )
 
-func UniversalHandler(w http.ResponseWriter, r *http.Request) {
+type CachedData struct {
+	Headers map[string]string `json:"headers"`
+	Body    string            `json:"body"`
+	Status  int               `json:"status"`
+}
+
+func (s *Server) UniversalHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		getHandler(w, r)
+		s.getHandler(w, r)
 	case http.MethodPost:
 		postHandler(w, r)
 	case http.MethodPatch:
@@ -23,8 +32,64 @@ func UniversalHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("This is a get method"))
+func (s *Server) getHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	cacheKey := "cache:" + r.URL.Path
+
+	cachedResponse, err := s.db.GetCache(ctx, cacheKey)
+	if err == nil && cachedResponse != "" {
+		// cache hit
+		var cachedData CachedData
+		err := json.Unmarshal([]byte(cachedResponse), &cachedData)
+		if err != nil {
+			InternalServerError(w)
+			return
+		}
+		for key, value := range cachedData.Headers {
+			w.Header().Set(key, value)
+		}
+		w.Header().Set("Cache-Status", "HIT")
+		w.WriteHeader(cachedData.Status)
+		w.Write([]byte(cachedData.Body))
+		return
+	}
+	// cache miss
+	currentUrl := root.Newflag.Origin + r.URL.Path
+	resp, err := http.Get(currentUrl)
+	if err != nil {
+		BadGatewayError(w, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		InternalServerError(w)
+		return
+	}
+
+	responseData := CachedData{
+		Headers: make(map[string]string),
+		Body:    string(bodyBytes),
+		Status:  resp.StatusCode,
+	}
+
+	for key, values := range resp.Header {
+		for _, value := range values {
+			w.Header().Add(key, value)
+			responseData.Headers[key] = value
+		}
+	}
+
+	jsonData, _ := json.Marshal(responseData)
+	err = s.db.SetCache(ctx, cacheKey, string(jsonData), 10*time.Minute)
+	if err != nil {	
+		InternalServerError(w)
+		return
+	}
+	w.Header().Set("Cache-Status", "MISS")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(bodyBytes)
 }
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
@@ -39,12 +104,12 @@ func putHandler(w http.ResponseWriter, r *http.Request) {
 
 func patchHandler(w http.ResponseWriter, r *http.Request) {
 	currentUrl := root.Newflag.Origin + r.URL.Path
-	forwardHandler(w,r,currentUrl)
+	forwardHandler(w, r, currentUrl)
 }
 
 func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	currentUrl := root.Newflag.Origin + r.URL.Path
-	forwardHandler(w,r,currentUrl)
+	forwardHandler(w, r, currentUrl)
 }
 
 func forwardHandler(w http.ResponseWriter, r *http.Request, currentUrl string) {
@@ -64,7 +129,7 @@ func forwardHandler(w http.ResponseWriter, r *http.Request, currentUrl string) {
 	resp, err := client.Do(req)
 	if err != nil {
 		// bad gateway error
-		BadGatewayError(w,err)
+		BadGatewayError(w, err)
 	}
 	defer resp.Body.Close()
 
