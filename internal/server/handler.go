@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -34,7 +35,8 @@ func (s *Server) UniversalHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) getHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	cacheKey := "cache:" + r.URL.Path
+	originUrl,_ := url.JoinPath(root.Newflag.Origin , r.URL.Path)
+	cacheKey := "cache>" + originUrl
 
 	cachedResponse, err := s.db.GetCache(ctx, cacheKey)
 	if err == nil && cachedResponse != "" {
